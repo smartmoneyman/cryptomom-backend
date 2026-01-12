@@ -1,0 +1,27 @@
+{
+  "name": "crypto-momentum",
+  "version": "1.0.0",
+  "description": "Crypto momentum tracker with PWA support",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [
+    "crypto",
+    "momentum",
+    "binance",
+    "pwa"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@capacitor/android": "^8.0.0",
+    "@capacitor/cli": "^8.0.0",
+    "axios": "^1.13.2",
+    "cors": "^2.8.5",
+    "express": "^5.2.1",
+    "node-cron": "^4.2.1",
+    "web-push": "^3.6.7"
+  }
+}

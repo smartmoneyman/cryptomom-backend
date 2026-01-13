@@ -15,6 +15,15 @@ import { getSubscriptions } from "../storage/subscriptions.js";
 
 const MIN_VOLUME_24H = 10_000_000;
 
+// ===== RATE LIMITING =====
+// Sleep function to avoid Binance rate limits
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Binance rate limit: 1200 requests/minute = 20 requests/second
+// We do 3 requests per symbol, so max ~6-7 symbols per second
+// Add 150ms delay between symbols = ~6.6 symbols/sec = ~20 requests/sec
+const DELAY_BETWEEN_SYMBOLS = 150; // milliseconds
+
 export async function runHourly() {
   runtimeState.runs++;
 
@@ -23,7 +32,10 @@ export async function runHourly() {
     console.log("🔁 Switching to NORMAL hourly mode");
   }
 
+  console.log("📡 Fetching futures from Binance...");
   const symbols = await fetchPerpetualSymbols();
+  console.log(`✅ Fetched ${symbols.length} futures symbols`);
+  
   const dataset = [];
 
   const hourTimestamp = Math.floor(Date.now() / 3_600_000) * 3_600_000;
@@ -31,6 +43,8 @@ export async function runHourly() {
   let processed = 0;
   let skipped = 0;
 
+  console.log("🔄 Processing symbols (with rate limiting)...");
+  
   for (const symbol of symbols) {
     try {
       const [volume24h, funding, oi] = await Promise.all([
@@ -84,9 +98,20 @@ export async function runHourly() {
 
       processed++;
 
+      // ===== RATE LIMITING: Add delay between symbols =====
+      await sleep(DELAY_BETWEEN_SYMBOLS);
+
     } catch (err) {
       skipped++;
-      console.warn(`⚠️ ${symbol} skipped: ${err.message}`);
+      
+      // Log different types of errors differently
+      if (err.response && err.response.status === 429) {
+        console.warn(`⚠️ ${symbol} skipped: Rate limit hit (429), increasing delay...`);
+        // If we hit rate limit, wait longer
+        await sleep(1000);
+      } else {
+        console.warn(`⚠️ ${symbol} skipped: ${err.message}`);
+      }
     }
   }
 
@@ -96,12 +121,14 @@ export async function runHourly() {
     return;
   }
 
+  console.log("📊 Calculating momentum scores...");
+  
   const ranked = calculateMomentum(dataset)
   .map((m, index) => ({
     symbol: m.symbol,
     score: m.score,
     state: classify(m.score),
-    rank: index + 1,  // 🔥 ДОБАВЛЕНО: rank на основе позиции в отсортированном массиве
+    rank: index + 1,
     
     // пробрасываем breakdown
     volumeAccel: m.volumeAccel,

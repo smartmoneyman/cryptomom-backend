@@ -22,7 +22,7 @@ const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Binance rate limit: 1200 requests/minute = 20 requests/second
 // We do 3 requests per symbol, so max ~6-7 symbols per second
 // Add 150ms delay between symbols = ~6.6 symbols/sec = ~20 requests/sec
-const DELAY_BETWEEN_SYMBOLS = 1500; // milliseconds
+const DELAY_BETWEEN_SYMBOLS = 150; // milliseconds
 
 export async function runHourly() {
   runtimeState.runs++;
